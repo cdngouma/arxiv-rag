@@ -1,0 +1,47 @@
+# ==========================================
+# RAG Project Specific Ignores
+# ==========================================
+
+# 1. Environment and Security Credentials
+# Never commit your OpenAI API keys to Git
+.env
+.env.local
+.env.*
+
+# 2. Heavy Data & Raw Corpora
+# Prevents giant raw files and data checkpoints from flooding Git history
+data/raw/
+data/processed/
+*.parquet
+*.csv
+*.json
+
+# 3. Vector Database Binaries & Metadata Collections
+# Keeps compiled FAISS float matrices and heavy metadata pickle caches local
+data/indices/
+*.faiss
+*.pkl
+
+# ==========================================
+# Standard Python & Jupyter Ecosystem Ignores
+# ==========================================
+
+# Jupyter Notebook checkpoints and state caches
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Python compiled bytecode and runtime optimizations
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments (Conda and Pip virtual setups)
+.venv/
+venv/
+env/
+.conda/
+conda-env/
+
+# System-specific metadata clutter
+.DS_Store
+Thumbs.db
