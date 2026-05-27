@@ -90,7 +90,7 @@ Corpus filtering:
 
 Final ranking score:
 
-$$
+```math
 \text{FinalScore}
 =
 (w_{vector} \times VectorScore)
@@ -98,7 +98,7 @@ $$
 (w_{recency} \times RecencyScore)
 +
 (w_{publication} \times PublicationScore)
-$$
+```
 
 ---
 
