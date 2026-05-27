@@ -147,4 +147,3 @@ The balanced reranking configuration improved ranking quality, freshness, and pu
 - Streamlit interface
 - FastAPI inference
 - Human-labeled evaluation benchmark
-```
