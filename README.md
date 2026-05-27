@@ -142,8 +142,6 @@ The balanced reranking configuration improved ranking quality, freshness, and pu
 - Pandas
 - NumPy
 
----
-
 ## Future Improvements
 
 - Streamlit interface
