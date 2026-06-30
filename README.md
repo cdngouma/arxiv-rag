@@ -1,42 +1,102 @@
-# Recency-Aware Research Paper RAG Assistant
+# Metadata-Aware Research Paper Retrieval System
 
-A metadata-aware Retrieval-Augmented Generation (RAG) system for research-paper discovery and question answering over arXiv papers.
+A metadata-aware Retrieval-Augmented Generation (RAG) system for research paper discovery and grounded question answering over arXiv papers.
 
-The system combines semantic vector retrieval with metadata-aware reranking to prioritize:
-1. Semantic relevance
-2. Recency
-3. Publication maturity
+Unlike conventional RAG systems that rank documents solely by semantic similarity, this project incorporates publication metadata to improve retrieval quality by prioritizing:
 
-The project focuses on realistic research-assistant retrieval behavior rather than generic chatbot interaction.
+- Semantic relevance
+- Publication recency
+- Publication maturity (peer-review signals)
+
+The goal is to emulate how researchers search for literature: retrieving papers that are not only relevant, but also recent and more likely to represent mature scientific work.
+
+---
+
+## Motivation
+
+Semantic vector search often retrieves highly similar papers regardless of publication date or publication status.
+
+For rapidly evolving fields such as Artificial Intelligence, users frequently prefer recent and peer-reviewed work over older preprints when semantic relevance is comparable.
+
+This project introduces a lightweight metadata-aware reranking stage that refines semantic retrieval without overriding it.
 
 ---
 
 ## Features
 
-- Semantic retrieval using FAISS + OpenAI embeddings
+- Semantic retrieval using FAISS and OpenAI embeddings
 - Metadata-aware reranking
     - publication year
-    - publication signal (`doi` / `journal-ref`)
-- Local LLM inference using Ollama
+    - publication signals (`doi`, `journal-ref`)
+- Local answer generation using Ollama
+- Synthetic query generation
 - Group-based retrieval evaluation
-- Synthetic query generation for benchmarking
-- Production-oriented modular architecture
+- Modular production-oriented architecture
 
 ---
 
-## Retrieval Objective
+## Retrieval Strategy
 
-The ranking system follows the hierarchy:
+Candidate papers are first retrieved using semantic similarity.
 
-$$
-\text{Semantic Relevance}
-\; > \;
-\text{Recency}
-\; > \;
-\text{Publication Signal}
-$$
+Metadata is then used only to reorder already relevant papers.
 
-Metadata signals are used to refine rankings among already relevant papers rather than override semantic similarity.
+Ranking priority:
+
+```text
+Semantic Relevance
+        ↓
+     Recency
+        ↓
+Publication Signal
+```
+
+Final ranking score:
+
+```math
+\text{FinalScore}
+=
+w_sS
++
+w_rR
++
+w_pP
+```
+
+where
+
+- **S** = semantic similarity
+- **R** = normalized recency score
+- **P** = publication signal
+
+This prevents metadata from dominating semantic relevance while still promoting newer and more credible research.
+
+---
+
+## Architecture
+
+```text
+                 User Query
+                      │
+                      ▼
+           OpenAI Embedding Model
+                      │
+                      ▼
+             FAISS Vector Search
+                      │
+                      ▼
+          Metadata-aware Reranking
+      (recency + publication signal)
+                      │
+                      ▼
+          Top-k Grounding Context
+                      │
+                      ▼
+             Ollama Local LLM
+                      │
+                      ▼
+               Generated Answer
+```
 
 ---
 
@@ -70,65 +130,60 @@ project/
 
 ## Dataset
 
-Source:
+**Source**
+
 - arXiv Metadata Snapshot
 
-Corpus filtering:
-- Categories: `cs.AI`, `cs.CL`, `cs.LG`, `stat.ML`
-- Years: `2020–2026`
-- Stratified sampling: `50,000` papers
+**Corpus**
+
+- Categories:
+    - `cs.AI`
+    - `cs.CL`
+    - `cs.LG`
+    - `stat.ML`
+- Publication years: **2020–2026**
+- Stratified sample of **50,000 papers**
 
 ---
 
 ## Retrieval Pipeline
 
-1. Retrieve candidate papers using FAISS semantic search
-2. Normalize vector similarity scores
-3. Apply metadata-aware reranking
-4. Build grounded LLM context
-5. Generate answer using local LLM
-
-Final ranking score:
-
-```math
-\text{FinalScore}
-=
-(w_{vector} \times VectorScore)
-+
-(w_{recency} \times RecencyScore)
-+
-(w_{publication} \times PublicationScore)
-```
+1. Embed the user query
+2. Retrieve candidate papers using FAISS
+3. Normalize semantic similarity scores
+4. Apply metadata-aware reranking
+5. Construct grounded retrieval context
+6. Generate the final answer with Ollama
 
 ---
 
 ## Evaluation
 
-The project uses a group-based retrieval benchmark:
-- synthetic research queries
-- semantic relevance groups
-- full-corpus retrieval evaluation
+Rather than evaluating only answer generation, this project evaluates retrieval quality directly.
 
-Metrics:
-- **Group Hit@10**: proportion of queries where at least one paper from the relevant semantic group appears in the top-10 retrieved results.
-- **Group Recall@10**: proportion of the relevant semantic paper group retrieved within the top-10 results.
-- **Group MRR@10**: reciprocal rank of the first retrieved paper belonging to the relevant semantic group, measuring ranking quality.
-- **Seed Hit@10**: whether the original seed paper used to generate the query appears in the top-10 retrieved results.
-- **Freshness@10**: average publication year of the top-10 retrieved papers, measuring recency preference.
-- **Published Rate@10**: proportion of top-10 retrieved papers containing a publication signal (`doi` or `journal-ref`), measuring publication maturity.
+Synthetic research queries are generated from held-out papers and evaluated over the full corpus.
 
-The evaluation benchmark intentionally reflects recency-aware research retrieval behavior.
+Metrics include:
+
+- **Group Hit@10**
+- **Group Recall@10**
+- **Group MRR@10**
+- **Seed Hit@10**
+- **Freshness@10**
+- **Published Rate@10**
+
+Together these metrics measure both retrieval quality and the ability to surface recent, publication-backed research.
 
 ---
 
-## Example Results
+## Results
 
 | Configuration | Group Recall@10 | Group MRR@10 | Freshness@10 | Published Rate@10 |
-|---|---|---|---|---|
+|---|---:|---:|---:|---:|
 | Baseline Semantic Search | 0.399 | 0.889 | 2023.70 | 0.243 |
-| Balanced Reranking | 0.388 | 0.904 | 2023.99 | 0.363 |
+| Metadata-aware Reranking | 0.388 | 0.904 | 2023.99 | 0.363 |
 
-The balanced reranking configuration improved ranking quality, freshness, and publication maturity while preserving most semantic retrieval coverage.
+Although semantic recall decreases slightly, reranking substantially improves ranking quality while retrieving newer papers with stronger publication signals.
 
 ---
 
@@ -142,8 +197,12 @@ The balanced reranking configuration improved ranking quality, freshness, and pu
 - Pandas
 - NumPy
 
-## Future Improvements
+---
 
+## Future Work
+
+- Cross-encoder reranking
+- Hybrid BM25 + dense retrieval
 - Streamlit interface
-- FastAPI inference
-- Human-labeled evaluation benchmark
+- FastAPI inference service
+- Human-labeled retrieval benchmark
